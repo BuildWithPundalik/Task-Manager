@@ -1,103 +1,199 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAuth } from "@/lib/auth-context"
+
+export default function AuthPage() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [name, setName] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [isRegisterMode, setIsRegisterMode] = useState(false)
+  const { login, register } = useAuth()
+  const router = useRouter()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setIsLoading(true)
+
+    try {
+      let result
+      
+      if (isRegisterMode) {
+        // Registration validation
+        if (password !== confirmPassword) {
+          setError("Passwords do not match")
+          setIsLoading(false)
+          return
+        }
+        if (password.length < 6) {
+          setError("Password must be at least 6 characters long")
+          setIsLoading(false)
+          return
+        }
+        
+        result = await register(name, email, password)
+      } else {
+        // Login
+        result = await login(email, password)
+      }
+
+      if (result.success) {
+        router.push("/home")
+      } else {
+        setError(result.error || `${isRegisterMode ? 'Registration' : 'Login'} failed`)
+      }
+    } catch (error) {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsLoading(false)
+    }
+  }
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="grid min-h-svh lg:grid-cols-2">
+      <div className="flex flex-col gap-4 p-6 md:p-10">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-sm">
+            <Card>
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-bold">
+                  {isRegisterMode ? "Create your account" : "Login to your account"}
+                </CardTitle>
+                <CardDescription>
+                  {isRegisterMode 
+                    ? "Enter your details below to create your account"
+                    : "Enter your email below to login to your account"
+                  }
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className={cn("flex flex-col gap-6")} onSubmit={handleSubmit}>
+                  <div className="grid gap-6">
+                    {isRegisterMode && (
+                      <div className="grid gap-3">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input 
+                          id="name" 
+                          type="text" 
+                          placeholder="John Doe" 
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required={isRegisterMode}
+                        />
+                      </div>
+                    )}
+                    <div className="grid gap-3">
+                      <Label htmlFor="email">Email</Label>
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        placeholder="m@example.com" 
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required 
+                      />
+                    </div>
+                    <div className="grid gap-3">
+                      <div className="flex items-center">
+                        <Label htmlFor="password">Password</Label>
+                        {!isRegisterMode && (
+                          <a
+                            href="#"
+                            className="ml-auto text-sm underline-offset-4 hover:underline"
+                          >
+                            Forgot your password?
+                          </a>
+                        )}
+                      </div>
+                      <Input 
+                        id="password" 
+                        type="password" 
+                        placeholder={isRegisterMode ? "Create a password" : "Enter your password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required 
+                      />
+                    </div>
+                    {isRegisterMode && (
+                      <div className="grid gap-3">
+                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                        <Input 
+                          id="confirmPassword" 
+                          type="password" 
+                          placeholder="Confirm your password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          required={isRegisterMode}
+                        />
+                      </div>
+                    )}
+                    {error && (
+                      <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+                        {error}
+                      </div>
+                    )}
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading 
+                        ? (isRegisterMode ? "Creating account..." : "Logging in...") 
+                        : (isRegisterMode ? "Create Account" : "Login")
+                      }
+                    </Button>
+                  </div>
+                  <div className="text-center text-sm">
+                    {isRegisterMode ? (
+                      <>
+                        Already have an account?{" "}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsRegisterMode(false)
+                            setError("")
+                            setName("")
+                            setConfirmPassword("")
+                          }}
+                          className="underline underline-offset-4 hover:text-primary"
+                        >
+                          Login here
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        Don&apos;t have an account?{" "}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsRegisterMode(true)
+                            setError("")
+                          }}
+                          className="underline underline-offset-4 hover:text-primary"
+                        >
+                          Register here
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+      <div className="bg-muted relative hidden lg:block">
+        <img
+          src="/placeholder.svg"
+          alt="Image"
+          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+        />
+      </div>
     </div>
-  );
+  )
 }
