@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Navbar } from "@/components/sections/navbar"
 import { UserInfoDisplay } from "@/components/sections/userinfo/user-info-display"
 import { Button } from "@/components/ui/button"
@@ -14,7 +14,6 @@ interface UserInfo {
   id: string
   name: string
   email: string
-  address: string
   joinedAt: Date
   avatar?: string
 }
@@ -23,6 +22,7 @@ export default function UserInfoPage() {
   const { user, refreshProfile } = useAuth()
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const isUpdatingRef = useRef(false) // Track if we're in the middle of an update
 
   // Function to fetch fresh user data from server
   const fetchUserProfile = async () => {
@@ -37,7 +37,6 @@ export default function UserInfoPage() {
           id: userData._id,
           name: userData.name,
           email: userData.email,
-          address: '', // This would need to be added to backend User model
           joinedAt: userData.createdAt ? new Date(userData.createdAt) : new Date(),
         }
         
@@ -53,25 +52,36 @@ export default function UserInfoPage() {
   }
 
   useEffect(() => {
+    // Don't update from auth context if we're in the middle of updating
+    if (isUpdatingRef.current) {
+      console.log('Skipping useEffect update - currently updating')
+      return
+    }
+    
     if (user) {
       // Transform backend user data to frontend UserInfo format
       const transformedUserInfo: UserInfo = {
         id: user._id,
         name: user.name,
         email: user.email,
-        address: '', // This would need to be added to backend User model
         joinedAt: user.createdAt ? new Date(user.createdAt) : new Date(),
       }
       
+      console.log('useEffect triggered with user:', transformedUserInfo) // Debug log
       setUserInfo(transformedUserInfo)
       setIsLoading(false)
     } else {
       // If no user in context, try fetching from server
       fetchUserProfile()
     }
-  }, [user])
+  }, [user]) // This will re-run whenever user changes
 
   const handleUpdateUser = async (updatedUser: UserInfo) => {
+    console.log('Received updated user data:', updatedUser) // Debug log
+    
+    // Set flag to prevent useEffect from overriding our update
+    isUpdatingRef.current = true
+    
     try {
       // Call API service to update user profile
       const response = await apiService.updateProfile({
@@ -80,17 +90,26 @@ export default function UserInfoPage() {
       })
 
       if (response.success) {
+        console.log('API update successful, updating local state') // Debug log
+        
+        // Update local state first with the new data
         setUserInfo(updatedUser)
+        
         // Refresh the user data in auth context
         await refreshProfile()
+        
         console.log("User updated successfully")
+        console.log("Final local userInfo:", updatedUser) // Debug log
       } else {
         console.error("Failed to update user:", response.error)
-        // You might want to show a toast notification here
       }
     } catch (error) {
       console.error("Error updating user:", error)
-      // You might want to show a toast notification here
+    } finally {
+      // Reset the flag after a delay to allow auth context to update
+      setTimeout(() => {
+        isUpdatingRef.current = false
+      }, 1000)
     }
   }
 
@@ -143,6 +162,7 @@ export default function UserInfoPage() {
           </div>
 
           <UserInfoDisplay 
+            key={userInfo.id + userInfo.name + userInfo.email} // Force re-render when data changes
             userInfo={userInfo} 
             onUpdateUser={handleUpdateUser}
           />

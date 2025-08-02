@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { User, Mail, Calendar, MapPin, Edit, Save, X } from "lucide-react"
+import { useState, useEffect } from "react"
+import { User, Mail, Calendar, Edit, Save, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,6 @@ interface UserInfo {
   id: string
   name: string
   email: string
-  address: string
   joinedAt: Date
   avatar?: string
 }
@@ -23,10 +22,49 @@ export function UserInfoDisplay({ userInfo, onUpdateUser }: UserInfoDisplayProps
   const [isEditing, setIsEditing] = useState(false)
   const [editedUser, setEditedUser] = useState<UserInfo>(userInfo)
 
+  // Helper function to get user initials safely
+  const getInitials = (name: string | undefined | null): string => {
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      return 'U'
+    }
+    
+    return name
+      .trim()
+      .split(' ')
+      .filter(word => word.length > 0)
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
   const handleSave = () => {
-    onUpdateUser(editedUser)
+    // Validate that name is not empty
+    if (!editedUser.name || editedUser.name.trim() === '') {
+      console.warn('Name cannot be empty, not saving')
+      return
+    }
+    
+    // Ensure the editedUser has the trimmed name
+    const updatedUser = {
+      ...editedUser,
+      name: editedUser.name.trim(),
+      email: editedUser.email.trim()
+    }
+    
+    console.log('Saving user data:', updatedUser) // Debug log
+    
+    // Call the parent's update function
+    onUpdateUser(updatedUser)
+    // Exit edit mode
     setIsEditing(false)
   }
+
+  // Update editedUser when userInfo prop changes
+  useEffect(() => {
+    console.log('UserInfo prop changed:', userInfo) // Debug log
+    setEditedUser(userInfo)
+  }, [userInfo])
 
   const handleCancel = () => {
     setEditedUser(userInfo)
@@ -71,10 +109,10 @@ export function UserInfoDisplay({ userInfo, onUpdateUser }: UserInfoDisplayProps
         {/* Avatar Section */}
         <div className="flex items-center space-x-4">
           <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-            {userInfo.name.split(' ').map(word => word[0]).join('').slice(0, 2).toUpperCase()}
+            {getInitials(userInfo.name)}
           </div>
           <div>
-            <h3 className="text-xl font-semibold">{userInfo.name}</h3>
+            <h3 className="text-xl font-semibold">{userInfo.name || 'User'}</h3>
             <p className="text-gray-500">Member since {userInfo.joinedAt.toLocaleDateString()}</p>
           </div>
         </div>
@@ -86,13 +124,13 @@ export function UserInfoDisplay({ userInfo, onUpdateUser }: UserInfoDisplayProps
             {isEditing ? (
               <Input
                 id="name"
-                value={editedUser.name}
+                value={editedUser.name || ''}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 className="mt-1"
               />
             ) : (
               <div className="mt-1 p-2 border rounded-md bg-gray-50">
-                {userInfo.name}
+                {userInfo.name && userInfo.name.trim() !== '' ? userInfo.name : 'No name provided'}
               </div>
             )}
           </div>
@@ -109,33 +147,13 @@ export function UserInfoDisplay({ userInfo, onUpdateUser }: UserInfoDisplayProps
               <Input
                 id="email"
                 type="email"
-                value={editedUser.email}
+                value={editedUser.email || ''}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 className="mt-1"
               />
             ) : (
               <div className="mt-1 p-2 border rounded-md bg-gray-50">
-                {userInfo.email}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="address" className="flex items-center">
-              <MapPin className="w-4 h-4 mr-2" />
-              Address
-            </Label>
-            {isEditing ? (
-              <Input
-                id="address"
-                value={editedUser.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                className="mt-1"
-                placeholder="Enter address"
-              />
-            ) : (
-              <div className="mt-1 p-2 border rounded-md bg-gray-50">
-                {userInfo.address || 'Not provided'}
+                {userInfo.email || 'No email provided'}
               </div>
             )}
           </div>

@@ -17,9 +17,15 @@ export function Navbar() {
   }
 
   // Get user initials for avatar
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | undefined | null): string => {
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      return 'U'
+    }
+    
     return name
+      .trim()
       .split(' ')
+      .filter(word => word.length > 0) // Filter out empty strings
       .map(word => word[0])
       .join('')
       .toUpperCase()
@@ -39,7 +45,7 @@ export function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                    {user ? getInitials(user.name) : 'U'}
+                    {getInitials(user?.name)}
                   </div>
                   <span>{user?.name || 'User'}</span>
                 </Button>
