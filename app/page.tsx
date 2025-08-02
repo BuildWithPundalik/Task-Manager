@@ -187,6 +187,17 @@ export default function AuthPage() {
                     >
                       {isLoading ? "Logging in..." : "Login"}
                     </Button>
+                    
+                    <div className="text-center text-sm">
+                      Don't have an account?{" "}
+                      <a
+                        href="/register"
+                        className="underline underline-offset-4 hover:text-primary"
+                      >
+                        Registration
+                      </a>
+                    </div>
+                
                   </div>
                 </form>
               </CardContent>

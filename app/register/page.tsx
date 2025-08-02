@@ -215,11 +215,12 @@ export default function RegisterPage() {
                   <Label htmlFor="name">Full Name</Label>
                   <Input 
                     id="name" 
-                    placeholder="John Doe" 
+                    placeholder="your name" 
                     value={name}
                     onChange={(e) => handleFieldChange('name', e.target.value)}
                     required 
-                    className={fieldErrors.name ? "border-red-500 focus:border-red-500" : ""}
+                    className={`${fieldErrors.name ? "border-red-500 focus:border-red-500" : ""} [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:shadow-[0_0_0px_1000px_white_inset]`}
+                    autoComplete="name"
                   />
                   {fieldErrors.name && (
                     <p className="text-sm text-red-600">{fieldErrors.name}</p>
@@ -234,7 +235,8 @@ export default function RegisterPage() {
                     value={email}
                     onChange={(e) => handleFieldChange('email', e.target.value)}
                     required 
-                    className={fieldErrors.email ? "border-red-500 focus:border-red-500" : ""}
+                    className={`${fieldErrors.email ? "border-red-500 focus:border-red-500" : ""} [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:shadow-[0_0_0px_1000px_white_inset]`}
+                    autoComplete="email"
                   />
                   {fieldErrors.email && (
                     <p className="text-sm text-red-600">{fieldErrors.email}</p>
@@ -249,7 +251,8 @@ export default function RegisterPage() {
                     value={password}
                     onChange={(e) => handleFieldChange('password', e.target.value)}
                     required 
-                    className={fieldErrors.password ? "border-red-500 focus:border-red-500" : ""}
+                    className={`${fieldErrors.password ? "border-red-500 focus:border-red-500" : ""} [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:shadow-[0_0_0px_1000px_white_inset]`}
+                    autoComplete="new-password"
                   />
                   {fieldErrors.password && (
                     <p className="text-sm text-red-600">{fieldErrors.password}</p>
@@ -287,7 +290,8 @@ export default function RegisterPage() {
                     value={confirmPassword}
                     onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
                     required 
-                    className={fieldErrors.confirmPassword ? "border-red-500 focus:border-red-500" : ""}
+                    className={`${fieldErrors.confirmPassword ? "border-red-500 focus:border-red-500" : ""} [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:shadow-[0_0_0px_1000px_white_inset]`}
+                    autoComplete="new-password"
                   />
                   {fieldErrors.confirmPassword && (
                     <p className="text-sm text-red-600">{fieldErrors.confirmPassword}</p>
