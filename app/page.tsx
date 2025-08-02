@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -17,43 +17,222 @@ export default function AuthPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isRegisterMode, setIsRegisterMode] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string
+    email?: string
+    password?: string
+    confirmPassword?: string
+  }>({})
   const { login, register } = useAuth()
   const router = useRouter()
+
+  // Debounced validation to avoid excessive API calls or validation
+  const debounceValidation = useCallback((field: string, value: string) => {
+    const timer = setTimeout(() => {
+      if (value.trim()) {
+        let error: string | null = null
+        switch (field) {
+          case 'email':
+            error = validateEmail(value)
+            break
+          case 'password':
+            error = validatePassword(value)
+            break
+          case 'name':
+            error = validateName(value)
+            break
+          case 'confirmPassword':
+            error = validateConfirmPassword(password, value)
+            break
+        }
+        if (error) {
+          setFieldErrors(prev => ({ ...prev, [field]: error }))
+        }
+      }
+    }, 500)
+    
+    return () => clearTimeout(timer)
+  }, [password])
+
+  // Validation functions
+  const validateEmail = (email: string): string | null => {
+    if (!email.trim()) {
+      return "Email is required"
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address"
+    }
+    return null
+  }
+
+  const validatePassword = (password: string): string | null => {
+    if (!password) {
+      return "Password is required"
+    }
+    if (password.length < 6) {
+      return "Password must be at least 6 characters long"
+    }
+    if (password.length > 128) {
+      return "Password must be less than 128 characters"
+    }
+    // Check for at least one letter and one number
+    if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(password)) {
+      return "Password must contain at least one letter and one number"
+    }
+    return null
+  }
+
+  const getPasswordStrength = (password: string): { score: number; label: string; color: string } => {
+    if (!password) return { score: 0, label: '', color: '' }
+    
+    let score = 0
+    if (password.length >= 6) score += 1
+    if (password.length >= 8) score += 1
+    if (/(?=.*[a-z])(?=.*[A-Z])/.test(password)) score += 1
+    if (/(?=.*\d)/.test(password)) score += 1
+    if (/(?=.*[!@#$%^&*(),.?":{}|<>])/.test(password)) score += 1
+    
+    if (score <= 2) return { score, label: 'Weak', color: 'text-red-600' }
+    if (score <= 3) return { score, label: 'Fair', color: 'text-yellow-600' }
+    if (score <= 4) return { score, label: 'Good', color: 'text-blue-600' }
+    return { score, label: 'Strong', color: 'text-green-600' }
+  }
+
+  const validateName = (name: string): string | null => {
+    if (!name.trim()) {
+      return "Full name is required"
+    }
+    if (name.trim().length < 2) {
+      return "Name must be at least 2 characters long"
+    }
+    if (name.trim().length > 50) {
+      return "Name must be less than 50 characters"
+    }
+    // Check for valid characters (letters, spaces, hyphens, apostrophes)
+    if (!/^[a-zA-Z\s\-']+$/.test(name.trim())) {
+      return "Name can only contain letters, spaces, hyphens, and apostrophes"
+    }
+    return null
+  }
+
+  const validateConfirmPassword = (password: string, confirmPassword: string): string | null => {
+    if (!confirmPassword) {
+      return "Please confirm your password"
+    }
+    if (password !== confirmPassword) {
+      return "Passwords do not match"
+    }
+    return null
+  }
+
+  // Real-time field validation
+  const handleFieldChange = (field: string, value: string) => {
+    // Clear the specific field error when user starts typing
+    if (fieldErrors[field as keyof typeof fieldErrors]) {
+      setFieldErrors(prev => ({ ...prev, [field]: undefined }))
+    }
+    
+    // Update the field value
+    switch (field) {
+      case 'name':
+        setName(value)
+        break
+      case 'email':
+        setEmail(value)
+        break
+      case 'password':
+        setPassword(value)
+        // Also clear confirm password error if passwords now match
+        if (isRegisterMode && confirmPassword && value === confirmPassword) {
+          setFieldErrors(prev => ({ ...prev, confirmPassword: undefined }))
+        }
+        break
+      case 'confirmPassword':
+        setConfirmPassword(value)
+        break
+    }
+  }
+
+  // Validate all fields
+  const validateForm = (): boolean => {
+    const errors: typeof fieldErrors = {}
+    
+    // Email validation
+    const emailError = validateEmail(email)
+    if (emailError) errors.email = emailError
+
+    // Password validation
+    const passwordError = validatePassword(password)
+    if (passwordError) errors.password = passwordError
+
+    // Registration-specific validations
+    if (isRegisterMode) {
+      // Name validation
+      const nameError = validateName(name)
+      if (nameError) errors.name = nameError
+
+      // Confirm password validation
+      const confirmPasswordError = validateConfirmPassword(password, confirmPassword)
+      if (confirmPasswordError) errors.confirmPassword = confirmPasswordError
+    }
+
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    
+    // Validate form before proceeding
+    if (!validateForm()) {
+      return
+    }
+    
     setIsLoading(true)
 
     try {
       let result
       
       if (isRegisterMode) {
-        // Registration validation
-        if (password !== confirmPassword) {
-          setError("Passwords do not match")
-          setIsLoading(false)
-          return
-        }
-        if (password.length < 6) {
-          setError("Password must be at least 6 characters long")
+        // Additional security checks for registration
+        const trimmedName = name.trim()
+        const trimmedEmail = email.trim().toLowerCase()
+        
+        // Check if email format is valid (additional check)
+        if (!trimmedEmail.includes('@') || trimmedEmail.length > 254) {
+          setError("Please enter a valid email address")
           setIsLoading(false)
           return
         }
         
-        result = await register(name, email, password)
+        result = await register(trimmedName, trimmedEmail, password)
       } else {
-        // Login
-        result = await login(email, password)
+        // Login with normalized email
+        const trimmedEmail = email.trim().toLowerCase()
+        result = await login(trimmedEmail, password)
       }
 
       if (result.success) {
+        // Clear sensitive data from memory
+        setPassword("")
+        setConfirmPassword("")
         router.push("/home")
       } else {
-        setError(result.error || `${isRegisterMode ? 'Registration' : 'Login'} failed`)
+        // Handle specific error messages
+        const errorMessage = result.error || `${isRegisterMode ? 'Registration' : 'Login'} failed`
+        
+        // Don't reveal too much information about why login failed
+        if (!isRegisterMode && (errorMessage.includes('user') || errorMessage.includes('email'))) {
+          setError("Invalid email or password")
+        } else {
+          setError(errorMessage)
+        }
       }
     } catch (error) {
-      setError("An unexpected error occurred")
+      console.error('Auth error:', error)
+      setError("An unexpected error occurred. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -86,9 +265,13 @@ export default function AuthPage() {
                           type="text" 
                           placeholder="John Doe" 
                           value={name}
-                          onChange={(e) => setName(e.target.value)}
+                          onChange={(e) => handleFieldChange('name', e.target.value)}
                           required={isRegisterMode}
+                          className={fieldErrors.name ? "border-red-500 focus:border-red-500" : ""}
                         />
+                        {fieldErrors.name && (
+                          <p className="text-sm text-red-600">{fieldErrors.name}</p>
+                        )}
                       </div>
                     )}
                     <div className="grid gap-3">
@@ -98,9 +281,13 @@ export default function AuthPage() {
                         type="email" 
                         placeholder="m@example.com" 
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => handleFieldChange('email', e.target.value)}
                         required 
+                        className={fieldErrors.email ? "border-red-500 focus:border-red-500" : ""}
                       />
+                      {fieldErrors.email && (
+                        <p className="text-sm text-red-600">{fieldErrors.email}</p>
+                      )}
                     </div>
                     <div className="grid gap-3">
                       <div className="flex items-center">
@@ -109,6 +296,7 @@ export default function AuthPage() {
                           <a
                             href="#"
                             className="ml-auto text-sm underline-offset-4 hover:underline"
+                            onClick={(e) => e.preventDefault()}
                           >
                             Forgot your password?
                           </a>
@@ -119,9 +307,36 @@ export default function AuthPage() {
                         type="password" 
                         placeholder={isRegisterMode ? "Create a password" : "Enter your password"}
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => handleFieldChange('password', e.target.value)}
                         required 
+                        className={fieldErrors.password ? "border-red-500 focus:border-red-500" : ""}
                       />
+                      {fieldErrors.password && (
+                        <p className="text-sm text-red-600">{fieldErrors.password}</p>
+                      )}
+                      {isRegisterMode && !fieldErrors.password && password && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-gray-600">Password strength:</p>
+                            <span className={`text-sm font-medium ${getPasswordStrength(password).color}`}>
+                              {getPasswordStrength(password).label}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all duration-300 ${
+                                getPasswordStrength(password).score <= 2 ? 'bg-red-500' :
+                                getPasswordStrength(password).score <= 3 ? 'bg-yellow-500' :
+                                getPasswordStrength(password).score <= 4 ? 'bg-blue-500' : 'bg-green-500'
+                              }`}
+                              style={{ width: `${(getPasswordStrength(password).score / 5) * 100}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            Use 8+ characters with uppercase, lowercase, numbers, and symbols
+                          </p>
+                        </div>
+                      )}
                     </div>
                     {isRegisterMode && (
                       <div className="grid gap-3">
@@ -131,9 +346,13 @@ export default function AuthPage() {
                           type="password" 
                           placeholder="Confirm your password"
                           value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
                           required={isRegisterMode}
+                          className={fieldErrors.confirmPassword ? "border-red-500 focus:border-red-500" : ""}
                         />
+                        {fieldErrors.confirmPassword && (
+                          <p className="text-sm text-red-600">{fieldErrors.confirmPassword}</p>
+                        )}
                       </div>
                     )}
                     {error && (
@@ -141,7 +360,11 @@ export default function AuthPage() {
                         {error}
                       </div>
                     )}
-                    <Button type="submit" className="w-full" disabled={isLoading}>
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={isLoading || Object.keys(fieldErrors).some(key => fieldErrors[key as keyof typeof fieldErrors])}
+                    >
                       {isLoading 
                         ? (isRegisterMode ? "Creating account..." : "Logging in...") 
                         : (isRegisterMode ? "Create Account" : "Login")
@@ -157,6 +380,7 @@ export default function AuthPage() {
                           onClick={() => {
                             setIsRegisterMode(false)
                             setError("")
+                            setFieldErrors({})
                             setName("")
                             setConfirmPassword("")
                           }}
@@ -173,6 +397,7 @@ export default function AuthPage() {
                           onClick={() => {
                             setIsRegisterMode(true)
                             setError("")
+                            setFieldErrors({})
                           }}
                           className="underline underline-offset-4 hover:text-primary"
                         >
