@@ -9,7 +9,7 @@ import { TaskGrid } from "@/components/sections/task-grid"
 import { EditTaskDialog } from "@/components/sections/edit-task-dialog"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useTasks } from "@/lib/task-context"
-import { Task, StoredTaskStatus, DisplayTaskStatus, TaskPriority, NewTaskForm, CreateTaskData } from "@/lib/types"
+import { Task, StoredTaskStatus, DisplayTaskStatus, NewTaskForm, CreateTaskData } from "@/lib/types"
 
 // This function will determine the *displayed* status
 const getDisplayStatus = (task: Task): DisplayTaskStatus => {

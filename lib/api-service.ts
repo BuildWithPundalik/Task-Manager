@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from './api-config';
-import { Task, User, CreateTaskData, StoredTaskStatus, TaskPriority } from './types';
+import { Task, User, CreateTaskData } from './types';
 
 // Types for API responses
 export interface ApiResponse<T = unknown> {
@@ -7,6 +7,18 @@ export interface ApiResponse<T = unknown> {
   message?: string;
   data?: T;
   error?: string;
+}
+
+// Backend response types
+interface TasksResponse {
+  success: boolean;
+  count?: number;
+  tasks: Task[];
+}
+
+interface TaskResponse {
+  success: boolean;
+  task: Task;
 }
 
 export interface AuthResponse {
@@ -150,22 +162,25 @@ class ApiService {
 
   // Task methods
   async getTasks(): Promise<ApiResponse<Task[]>> {
-    const response = await this.makeRequest<any>(API_ENDPOINTS.tasks.base);
+    const response = await this.makeRequest<TasksResponse>(API_ENDPOINTS.tasks.base);
     
     if (response.success && response.data) {
       // Backend returns { success: true, count: number, tasks: Task[] }
       // We need to return { success: true, data: Task[] }
       return {
         success: true,
-        data: response.data.tasks || response.data,
+        data: response.data.tasks || [],
       };
     }
     
-    return response;
+    return {
+      success: false,
+      error: response.error || 'Failed to fetch tasks',
+    };
   }
 
   async createTask(task: CreateTaskData): Promise<ApiResponse<Task>> {
-    const response = await this.makeRequest<any>(API_ENDPOINTS.tasks.create, {
+    const response = await this.makeRequest<TaskResponse>(API_ENDPOINTS.tasks.create, {
       method: 'POST',
       body: JSON.stringify(task),
     });
@@ -173,15 +188,18 @@ class ApiService {
     if (response.success && response.data) {
       return {
         success: true,
-        data: response.data.task || response.data,
+        data: response.data.task,
       };
     }
     
-    return response;
+    return {
+      success: false,
+      error: response.error || 'Failed to create task',
+    };
   }
 
   async updateTask(id: string, task: Partial<Task>): Promise<ApiResponse<Task>> {
-    const response = await this.makeRequest<any>(API_ENDPOINTS.tasks.update(id), {
+    const response = await this.makeRequest<TaskResponse>(API_ENDPOINTS.tasks.update(id), {
       method: 'PUT',
       body: JSON.stringify(task),
     });
@@ -189,11 +207,14 @@ class ApiService {
     if (response.success && response.data) {
       return {
         success: true,
-        data: response.data.task || response.data,
+        data: response.data.task,
       };
     }
     
-    return response;
+    return {
+      success: false,
+      error: response.error || 'Failed to update task',
+    };
   }
 
   async deleteTask(id: string): Promise<ApiResponse> {

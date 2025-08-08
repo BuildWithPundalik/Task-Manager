@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('Initializing with stored user:', parsed.name);
             return parsed;
           }
-        } catch (tokenError) {
+        } catch {
           console.log('Invalid token format, clearing data');
         }
       }
@@ -269,6 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearInterval(tokenCheckInterval.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - only run once on mount
 
   const login = async (email: string, password: string) => {

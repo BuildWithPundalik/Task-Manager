@@ -35,7 +35,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       } else {
         setError(response.error || 'Failed to fetch tasks');
       }
-    } catch (error) {
+    } catch {
       setError('Failed to fetch tasks');
     } finally {
       setIsLoading(false);
@@ -60,7 +60,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       } else {
         return { success: false, error: response.error || 'Failed to create task' };
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to create task' };
     }
   };
@@ -77,7 +77,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       } else {
         return { success: false, error: response.error || 'Failed to update task' };
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to update task' };
     }
   };
@@ -92,7 +92,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       } else {
         return { success: false, error: response.error || 'Failed to delete task' };
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to delete task' };
     }
   };

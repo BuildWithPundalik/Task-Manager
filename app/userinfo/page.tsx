@@ -3,8 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Navbar } from "@/components/sections/navbar"
 import { UserInfoDisplay } from "@/components/sections/userinfo/user-info-display"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, Home, ChevronRight } from "lucide-react"
+import { Home, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { ProtectedRoute } from "@/components/protected-route"
@@ -19,7 +18,7 @@ interface UserInfo {
 }
 
 export default function UserInfoPage() {
-  const { user, refreshProfile, isLoading: authLoading, updateUserData } = useAuth()
+  const { user, isLoading: authLoading, updateUserData } = useAuth()
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const isUpdatingRef = useRef(false) // Track if we're in the middle of an update

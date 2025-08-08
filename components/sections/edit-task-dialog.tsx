@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Clock, AlertCircle } from "lucide-react"
-import { Task, StoredTaskStatus, DisplayTaskStatus, TaskPriority } from "@/lib/types"
+import { Task, DisplayTaskStatus, TaskPriority } from "@/lib/types"
 
 interface EditTaskDialogProps {
   editingTask: Task | null

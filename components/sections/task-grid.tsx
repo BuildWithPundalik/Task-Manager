@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Task, StoredTaskStatus, DisplayTaskStatus, TaskPriority } from "@/lib/types"
+import { Task, DisplayTaskStatus, TaskPriority } from "@/lib/types"
 
 interface TaskGridProps {
   filteredTasks: Task[]
