@@ -1,5 +1,5 @@
 // API configuration and base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://task-manager-backend-dun.vercel.app/api';
+const API_BASE_URL = 'https://task-manager-backend-dun.vercel.app/api';
 
 export const API_ENDPOINTS = {
   auth: {
