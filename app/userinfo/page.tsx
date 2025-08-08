@@ -19,7 +19,7 @@ interface UserInfo {
 }
 
 export default function UserInfoPage() {
-  const { user, refreshProfile, isLoading: authLoading } = useAuth()
+  const { user, refreshProfile, isLoading: authLoading, updateUserData } = useAuth()
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const isUpdatingRef = useRef(false) // Track if we're in the middle of an update
@@ -95,15 +95,18 @@ export default function UserInfoPage() {
       })
 
       if (response.success) {
-        console.log('API update successful, updating local state') // Debug log
+        console.log('API update successful, updating all states') // Debug log
         
-        // Update local state first with the new data
+        // 1. Update local userInfo state
         setUserInfo(updatedUser)
         
-        // Refresh the user data in auth context to sync with localStorage
-        await refreshProfile()
+        // 2. Update auth context user data directly (this updates localStorage too)
+        updateUserData({
+          name: updatedUser.name,
+          email: updatedUser.email,
+        })
         
-        console.log("User updated successfully")
+        console.log("User updated successfully across all states")
         console.log("Final local userInfo:", updatedUser) // Debug log
       } else {
         console.error("Failed to update user:", response.error)
@@ -111,10 +114,10 @@ export default function UserInfoPage() {
     } catch (error) {
       console.error("Error updating user:", error)
     } finally {
-      // Reset the flag after a shorter delay since we now have proper token management
+      // Reset the flag after a shorter delay
       setTimeout(() => {
         isUpdatingRef.current = false
-      }, 500)
+      }, 200)
     }
   }
 

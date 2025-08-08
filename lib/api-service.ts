@@ -50,8 +50,9 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     const token = this.getAuthToken();
     
-    // Check token validity before making request
-    if (token && this.isTokenExpired(token)) {
+    // Check token validity before making request (except for login/register)
+    const isAuthRequest = url.includes('/auth/login') || url.includes('/auth/register');
+    if (token && !isAuthRequest && this.isTokenExpired(token)) {
       console.log('Token expired, clearing auth data');
       this.clearAuthData();
       return {
@@ -64,7 +65,7 @@ class ApiService {
       'Content-Type': 'application/json',
     };
 
-    if (token) {
+    if (token && !isAuthRequest) {
       defaultHeaders.Authorization = `Bearer ${token}`;
     }
 
@@ -80,8 +81,8 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
-        // Handle token expiration from server
-        if (response.status === 401) {
+        // Handle token expiration from server (but not for auth requests)
+        if (response.status === 401 && !isAuthRequest) {
           console.log('Unauthorized request, clearing auth data');
           this.clearAuthData();
           return {
@@ -99,8 +100,8 @@ class ApiService {
     } catch (error) {
       console.error('API request failed:', error);
       
-      // Handle network errors that might indicate token issues
-      if (error instanceof Error && error.message.includes('401')) {
+      // Handle network errors that might indicate token issues (except for auth requests)
+      if (error instanceof Error && error.message.includes('401') && !isAuthRequest) {
         this.clearAuthData();
         return {
           success: false,
@@ -149,126 +150,56 @@ class ApiService {
 
   // Task methods
   async getTasks(): Promise<ApiResponse<Task[]>> {
-    try {
-      const response = await fetch(API_ENDPOINTS.tasks.base, {
-        headers: {
-          'Authorization': `Bearer ${this.getAuthToken()}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
-      }
-
+    const response = await this.makeRequest<any>(API_ENDPOINTS.tasks.base);
+    
+    if (response.success && response.data) {
       // Backend returns { success: true, count: number, tasks: Task[] }
       // We need to return { success: true, data: Task[] }
       return {
         success: true,
-        data: data.tasks,
-      };
-    } catch (error) {
-      console.error('API request failed:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        data: response.data.tasks || response.data,
       };
     }
+    
+    return response;
   }
 
   async createTask(task: CreateTaskData): Promise<ApiResponse<Task>> {
-    try {
-      const response = await fetch(API_ENDPOINTS.tasks.create, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.getAuthToken()}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(task),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
-      }
-
-      // Backend returns { success: true, message: string, task: Task }
-      // We need to return { success: true, data: Task }
+    const response = await this.makeRequest<any>(API_ENDPOINTS.tasks.create, {
+      method: 'POST',
+      body: JSON.stringify(task),
+    });
+    
+    if (response.success && response.data) {
       return {
         success: true,
-        data: data.task,
-      };
-    } catch (error) {
-      console.error('API request failed:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        data: response.data.task || response.data,
       };
     }
+    
+    return response;
   }
 
   async updateTask(id: string, task: Partial<Task>): Promise<ApiResponse<Task>> {
-    try {
-      const response = await fetch(API_ENDPOINTS.tasks.update(id), {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${this.getAuthToken()}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(task),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
-      }
-
-      // Backend returns { success: true, message: string, task: Task }
-      // We need to return { success: true, data: Task }
+    const response = await this.makeRequest<any>(API_ENDPOINTS.tasks.update(id), {
+      method: 'PUT',
+      body: JSON.stringify(task),
+    });
+    
+    if (response.success && response.data) {
       return {
         success: true,
-        data: data.task,
-      };
-    } catch (error) {
-      console.error('API request failed:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        data: response.data.task || response.data,
       };
     }
+    
+    return response;
   }
 
   async deleteTask(id: string): Promise<ApiResponse> {
-    try {
-      const response = await fetch(API_ENDPOINTS.tasks.delete(id), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${this.getAuthToken()}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
-      }
-
-      return {
-        success: true,
-        data: data,
-      };
-    } catch (error) {
-      console.error('API request failed:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-      };
-    }
+    return this.makeRequest(API_ENDPOINTS.tasks.delete(id), {
+      method: 'DELETE',
+    });
   }
 
   async getTaskById(id: string): Promise<ApiResponse<Task>> {

@@ -12,12 +12,41 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateUserData: (userData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  // Initialize user from localStorage immediately to prevent flash
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window === 'undefined') return null;
+    
+    try {
+      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      
+      if (storedUser && token) {
+        const parsed = JSON.parse(storedUser);
+        // Quick token expiry check
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const currentTime = Date.now() / 1000;
+          if (payload.exp > currentTime) {
+            console.log('Initializing with stored user:', parsed.name);
+            return parsed;
+          }
+        } catch (tokenError) {
+          console.log('Invalid token format, clearing data');
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing user from localStorage:', error);
+    }
+    
+    return null;
+  });
+  
   const [isLoading, setIsLoading] = useState(true);
   const tokenCheckInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -41,9 +70,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     try {
       const storedUser = localStorage.getItem('user');
-      return storedUser ? JSON.parse(storedUser) : null;
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        console.log('Retrieved stored user:', parsed.name || 'unnamed user');
+        return parsed;
+      }
+      console.log('No stored user found');
+      return null;
     } catch (error) {
       console.error('Error parsing stored user:', error);
+      localStorage.removeItem('user'); // Clear corrupted data
       return null;
     }
   };
@@ -52,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const storeUser = (userData: User) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('user', JSON.stringify(userData));
+      console.log('Stored user data for:', userData.name);
     }
   };
 
@@ -68,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     
     if (!token) {
+      console.log('No token found');
       const storedUser = getStoredUser();
       if (storedUser) {
         clearStoredData();
@@ -83,15 +121,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
 
-    // Check if we have stored user data
+    // If user is already set and valid, don't fetch again
+    if (user && user._id && user.name && user.email) {
+      console.log('User already validated:', user.name);
+      return true;
+    }
+
+    // Check if we have stored user data and it's valid
     const storedUser = getStoredUser();
-    if (storedUser) {
+    if (storedUser && storedUser._id && storedUser.name && storedUser.email) {
+      console.log('Loading user from localStorage:', storedUser.name);
       setUser(storedUser);
       return true;
     }
 
-    // If no stored user data, fetch from server
+    // If no valid stored user data, fetch from server
     try {
+      console.log('Fetching user profile from server...');
       const response = await apiService.getProfile();
       if (response.success && response.data) {
         const userData: User = {
@@ -101,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           createdAt: response.data.createdAt,
           updatedAt: response.data.updatedAt,
         };
+        console.log('User profile fetched from server:', userData.name);
         setUser(userData);
         storeUser(userData);
         return true;
@@ -124,6 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       
       if (!token) {
+        console.log('No token found during refresh');
         clearStoredData();
         setUser(null);
         return;
@@ -136,6 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      console.log('Refreshing profile from server...');
       const response = await apiService.getProfile();
 
       if (response.success && response.data) {
@@ -146,6 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           createdAt: response.data.createdAt,
           updatedAt: response.data.updatedAt,
         };
+        console.log('Profile refreshed successfully:', userData.name);
         setUser(userData);
         storeUser(userData);
       } else {
@@ -180,9 +230,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      await validateAndRefreshAuth();
-      setIsLoading(false);
-      setupTokenValidation();
+      try {
+        console.log('Starting auth initialization...');
+        
+        // If user is already loaded from localStorage, just validate the token
+        if (user) {
+          const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+          if (token && !isTokenExpired(token)) {
+            console.log('User already loaded from localStorage, token is valid');
+            setIsLoading(false);
+            setupTokenValidation();
+            return;
+          } else {
+            console.log('Token invalid, clearing user');
+            clearStoredData();
+            setUser(null);
+          }
+        }
+        
+        // Otherwise, run full validation
+        const isAuthenticated = await validateAndRefreshAuth();
+        console.log('Auth initialization complete:', isAuthenticated ? 'authenticated' : 'not authenticated');
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        clearStoredData();
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+        setupTokenValidation();
+      }
     };
 
     initializeAuth();
@@ -193,7 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearInterval(tokenCheckInterval.current);
       }
     };
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
 
   const login = async (email: string, password: string) => {
     try {
@@ -221,7 +297,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         return { success: true };
       } else {
-        return { success: false, error: response.error || 'Login failed' };
+        // Handle specific login errors
+        const errorMessage = response.error || 'Login failed';
+        if (errorMessage.includes('Invalid credentials') || errorMessage.includes('incorrect password') || errorMessage.includes('user not found')) {
+          return { success: false, error: 'Invalid email or password. Please check your credentials and try again.' };
+        }
+        return { success: false, error: errorMessage };
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -287,6 +368,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Update user data in both state and localStorage
+  const updateUserData = (userData: Partial<User>) => {
+    if (!user) return;
+    
+    const updatedUser = {
+      ...user,
+      ...userData,
+      updatedAt: new Date().toISOString()
+    };
+    
+    console.log('Updating user data in auth context:', updatedUser.name);
+    setUser(updatedUser);
+    storeUser(updatedUser);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -297,6 +393,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         refreshProfile,
+        updateUserData,
       }}
     >
       {children}

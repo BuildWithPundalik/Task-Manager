@@ -1,5 +1,5 @@
 // API configuration and base URL
-const API_BASE_URL = 'https://task-manager-backend-dun.vercel.app/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
 export const API_ENDPOINTS = {
   auth: {
