@@ -22,12 +22,44 @@ class ApiService {
     return null;
   }
 
+  private isTokenExpired(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Date.now() / 1000;
+      return payload.exp < currentTime;
+    } catch (error) {
+      console.error('Invalid token format:', error);
+      return true;
+    }
+  }
+
+  private clearAuthData() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Redirect to login if we're not already there
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
+      }
+    }
+  }
+
   private async makeRequest<T>(
     url: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const token = this.getAuthToken();
     
+    // Check token validity before making request
+    if (token && this.isTokenExpired(token)) {
+      console.log('Token expired, clearing auth data');
+      this.clearAuthData();
+      return {
+        success: false,
+        error: 'Session expired. Please login again.',
+      };
+    }
+
     const defaultHeaders: HeadersInit = {
       'Content-Type': 'application/json',
     };
@@ -48,6 +80,15 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle token expiration from server
+        if (response.status === 401) {
+          console.log('Unauthorized request, clearing auth data');
+          this.clearAuthData();
+          return {
+            success: false,
+            error: 'Session expired. Please login again.',
+          };
+        }
         throw new Error(data.message || `HTTP error! status: ${response.status}`);
       }
 
@@ -57,6 +98,16 @@ class ApiService {
       };
     } catch (error) {
       console.error('API request failed:', error);
+      
+      // Handle network errors that might indicate token issues
+      if (error instanceof Error && error.message.includes('401')) {
+        this.clearAuthData();
+        return {
+          success: false,
+          error: 'Session expired. Please login again.',
+        };
+      }
+      
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',

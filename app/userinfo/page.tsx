@@ -19,7 +19,7 @@ interface UserInfo {
 }
 
 export default function UserInfoPage() {
-  const { user, refreshProfile } = useAuth()
+  const { user, refreshProfile, isLoading: authLoading } = useAuth()
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const isUpdatingRef = useRef(false) // Track if we're in the middle of an update
@@ -52,6 +52,11 @@ export default function UserInfoPage() {
   }
 
   useEffect(() => {
+    // Wait for auth context to finish loading
+    if (authLoading) {
+      return
+    }
+    
     // Don't update from auth context if we're in the middle of updating
     if (isUpdatingRef.current) {
       console.log('Skipping useEffect update - currently updating')
@@ -71,10 +76,10 @@ export default function UserInfoPage() {
       setUserInfo(transformedUserInfo)
       setIsLoading(false)
     } else {
-      // If no user in context, try fetching from server
+      // If no user in context after auth loading is complete, try fetching from server
       fetchUserProfile()
     }
-  }, [user]) // This will re-run whenever user changes
+  }, [user, authLoading]) // Depend on both user and auth loading state
 
   const handleUpdateUser = async (updatedUser: UserInfo) => {
     console.log('Received updated user data:', updatedUser) // Debug log
@@ -95,7 +100,7 @@ export default function UserInfoPage() {
         // Update local state first with the new data
         setUserInfo(updatedUser)
         
-        // Refresh the user data in auth context
+        // Refresh the user data in auth context to sync with localStorage
         await refreshProfile()
         
         console.log("User updated successfully")
@@ -106,10 +111,10 @@ export default function UserInfoPage() {
     } catch (error) {
       console.error("Error updating user:", error)
     } finally {
-      // Reset the flag after a delay to allow auth context to update
+      // Reset the flag after a shorter delay since we now have proper token management
       setTimeout(() => {
         isUpdatingRef.current = false
-      }, 1000)
+      }, 500)
     }
   }
 
