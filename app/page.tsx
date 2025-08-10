@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -206,14 +205,6 @@ export default function AuthPage() {
             </Card>
           </div>
         </div>
-      </div>
-      <div className="bg-muted relative hidden lg:block">
-        <Image
-          src="/placeholder.svg"
-          alt="Image"
-          fill
-          className="object-cover dark:brightness-[0.2] dark:grayscale"
-        />
       </div>
     </div>
   )
