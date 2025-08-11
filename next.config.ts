@@ -1,14 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'https://task-manager-backend-gamma-silk.vercel.app/api/:path*',
-      },
-    ];
-  },
+  // Removed rewrites since we're making direct calls to Vercel backend
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://task-manager-backend-gamma-silk.vercel.app/api',
   },

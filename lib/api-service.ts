@@ -60,6 +60,9 @@ class ApiService {
     url: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    // Debug logging
+    console.log('🌐 Making API request to:', url);
+    
     const token = this.getAuthToken();
     
     // Check token validity before making request (except for login/register)
