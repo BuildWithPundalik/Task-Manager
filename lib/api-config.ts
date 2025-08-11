@@ -1,11 +1,6 @@
 // API configuration and base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://task-manager-backend-gamma-silk.vercel.app/api';
 
-// Debug logging
-console.log('🔗 API Configuration:');
-console.log('Environment Variable NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
-console.log('Final API_BASE_URL:', API_BASE_URL);
-
 export const API_ENDPOINTS = {
   auth: {
     login: `${API_BASE_URL}/auth/login`,
