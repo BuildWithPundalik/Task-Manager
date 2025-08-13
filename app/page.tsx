@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -205,6 +206,16 @@ export default function AuthPage() {
             </Card>
           </div>
         </div>
+      </div>
+      <div className="hidden bg-muted lg:block relative">
+        <Image
+          src="https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=1080&q=80"
+          alt="Task Management Illustration"
+          fill
+          className="object-cover dark:brightness-[0.2] dark:grayscale"
+          sizes="50vw"
+          unoptimized={false}
+        />
       </div>
     </div>
   )
