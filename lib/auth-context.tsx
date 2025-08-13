@@ -52,6 +52,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isAuthenticated = !!user;
 
+  // Check if user should remain authenticated based on stored token
+  const shouldRemainAuthenticated = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    
+    if (!token || !storedUser) {
+      console.log('No token or user data found - user needs to login');
+      return false;
+    }
+    
+    if (isTokenExpired(token)) {
+      console.log('Token expired - user needs to login again');
+      clearStoredData();
+      return false;
+    }
+    
+    console.log('Valid token found - user remains authenticated');
+    return true;
+  };
+
   // Check if token is expired
   const isTokenExpired = (token: string): boolean => {
     try {
@@ -221,9 +243,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check token every 5 minutes
     tokenCheckInterval.current = setInterval(async () => {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      if (token && isTokenExpired(token)) {
-        console.log('Token expired, logging out');
+      
+      if (!token) {
+        console.log('No token found in interval check');
+        return;
+      }
+      
+      if (isTokenExpired(token)) {
+        console.log('Token expired during interval check, logging out');
         await logout();
+        return;
+      }
+      
+      // Check if token expires in the next 10 minutes and refresh profile to keep session alive
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Date.now() / 1000;
+        const timeUntilExpiry = payload.exp - currentTime;
+        
+        // If token expires in less than 10 minutes, refresh profile to extend session
+        if (timeUntilExpiry < 600) { // 600 seconds = 10 minutes
+          console.log('Token expires soon, refreshing profile to extend session');
+          await refreshProfile();
+        }
+      } catch (error) {
+        console.error('Error checking token expiry time:', error);
       }
     }, 5 * 60 * 1000); // 5 minutes
   };
