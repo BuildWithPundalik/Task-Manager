@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -19,8 +19,36 @@ export default function AuthPage() {
     email?: string
     password?: string
   }>({})
-  const { login } = useAuth()
+  const { login, user, isLoading: authLoading } = useAuth()
   const router = useRouter()
+
+  // ✅ AUTO-REDIRECT: Check if user is already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      console.log('User already authenticated, redirecting to home...')
+      router.push('/home')
+    }
+  }, [user, authLoading, router])
+
+  // ✅ SHOW LOADING: While checking authentication status
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    )
+  }
+
+  // ✅ PREVENT FLASH: Don't show login form if user is authenticated
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p>Redirecting...</p>
+        </div>
+      </div>
+    )
+  }
 
   // Validation functions - only for format checking
   const validateEmail = (email: string): string | null => {
