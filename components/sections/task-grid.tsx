@@ -55,6 +55,17 @@ export function TaskGrid({
     }
   }
 
+  const getCardBackgroundColor = (status: DisplayTaskStatus) => {
+    switch (status) {
+      case "completed":
+        return "bg-emerald-50 border-emerald-200"
+      case "overdue":
+        return "bg-red-50 border-red-200"
+      case "pending":
+        return "bg-white"
+    }
+  }
+
   if (filteredTasks.length === 0) {
     return (
       <div className="text-center py-12">
@@ -67,7 +78,10 @@ export function TaskGrid({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredTasks.map((task) => (
-        <Card key={task._id || Math.random().toString()} className="hover:shadow-md transition-shadow">
+        <Card 
+          key={task._id || Math.random().toString()} 
+          className={`hover:shadow-md transition-shadow ${getCardBackgroundColor(getDisplayStatus(task))}`}
+        >
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">

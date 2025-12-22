@@ -169,9 +169,6 @@ export function UserInfoDisplay({ userInfo, onUpdateUser }: UserInfoDisplayProps
             <div>
               <span className="font-medium">Member since:</span> {userInfo.joinedAt.toLocaleDateString()}
             </div>
-            <div>
-              <span className="font-medium">User ID:</span> {userInfo.id}
-            </div>
           </div>
         </div>
       </CardContent>

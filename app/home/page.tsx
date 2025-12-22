@@ -90,6 +90,7 @@ function TaskManagerContent() {
   const { tasks, isLoading, error, createTask, updateTask, deleteTask } = useTasks()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<DisplayTaskStatus | "all">("all")
+  const [sortBy, setSortBy] = useState<"daysLeft" | "created" | "priority">("priority")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [newTask, setNewTask] = useState<NewTaskForm>({
@@ -105,6 +106,23 @@ function TaskManagerContent() {
       (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesFilter = filterStatus === "all" || getDisplayStatus(task) === filterStatus
     return matchesSearch && matchesFilter
+  }).sort((a, b) => {
+    if (sortBy === "daysLeft") {
+      // Sort by due date (earliest first)
+      const aDate = new Date(a.dueDate).getTime()
+      const bDate = new Date(b.dueDate).getTime()
+      return aDate - bDate
+    } else if (sortBy === "created") {
+      // Sort by creation date (newest first)
+      const aDate = new Date(a.createdAt || 0).getTime()
+      const bDate = new Date(b.createdAt || 0).getTime()
+      return bDate - aDate
+    } else if (sortBy === "priority") {
+      // Sort by priority (high > medium > low)
+      const priorityOrder = { high: 3, medium: 2, low: 1 }
+      return priorityOrder[b.priority] - priorityOrder[a.priority]
+    }
+    return 0
   })
 
   const taskCounts = {
@@ -140,9 +158,43 @@ function TaskManagerContent() {
   const handleUpdateTask = async (updatedTask: Task) => {
     if (!updatedTask._id) return
     
-    const result = await updateTask(updatedTask._id, updatedTask)
+    // Validate required fields
+    if (!updatedTask.title.trim()) {
+      alert('Title is required');
+      return;
+    }
+    
+    // Only send fields that can be updated to avoid validation errors
+    // Ensure dueDate is in ISO format
+    let formattedDueDate = updatedTask.dueDate;
+    
+    // If dueDate doesn't contain 'T', it means it's not in ISO format
+    if (!formattedDueDate.includes('T')) {
+      formattedDueDate = new Date(formattedDueDate + 'T00:00:00').toISOString();
+    }
+    
+    const updateData = {
+      title: updatedTask.title.trim(),
+      description: updatedTask.description || '', // Ensure description is not undefined
+      status: updatedTask.status,
+      priority: updatedTask.priority,
+      dueDate: formattedDueDate,
+    }
+    
+    console.log('Updating task with data:', updateData);
+    
+    const result = await updateTask(updatedTask._id, updateData)
     if (result.success) {
       setEditingTask(null)
+    } else {
+      console.error('Failed to update task:', result.error);
+      // Show user-friendly error message
+      const errorMsg = result.error || 'Failed to update task';
+      if (errorMsg.includes('Validation') || errorMsg.includes('due date')) {
+        alert('Unable to save changes. Note: The system currently does not allow setting past due dates. Please select a future date or keep the current date.');
+      } else {
+        alert(`Failed to update task: ${errorMsg}`);
+      }
     }
   }
 
@@ -198,6 +250,8 @@ function TaskManagerContent() {
           setSearchTerm={setSearchTerm}
           filterStatus={filterStatus}
           setFilterStatus={setFilterStatus}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
         />
 
         {/* Tasks Grid */}

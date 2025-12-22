@@ -87,8 +87,22 @@ export function EditTaskDialog({ editingTask, setEditingTask, updateTask, getDis
                 id="edit-dueDate"
                 type="date"
                 value={editingTask.dueDate ? editingTask.dueDate.split("T")[0] : ""}
-                onChange={(e) => setEditingTask({ ...editingTask, dueDate: e.target.value })}
+                onChange={(e) => {
+                  // Convert the date input to ISO string format
+                  const dateStr = e.target.value;
+                  if (dateStr) {
+                    const isoDate = new Date(dateStr + 'T00:00:00').toISOString();
+                    setEditingTask({ ...editingTask, dueDate: isoDate });
+                  } else {
+                    setEditingTask({ ...editingTask, dueDate: dateStr });
+                  }
+                }}
               />
+              {editingTask.dueDate && new Date(editingTask.dueDate) < new Date() && (
+                <p className="text-xs text-amber-600 mt-1">
+                  ⚠️ Note: Setting past dates may not be supported by the system
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -109,7 +123,12 @@ export function EditTaskDialog({ editingTask, setEditingTask, updateTask, getDis
             <Button variant="outline" onClick={() => setEditingTask(null)}>
               Cancel
             </Button>
-            <Button onClick={() => updateTask(editingTask)}>Save Changes</Button>
+            <Button 
+              onClick={() => updateTask(editingTask)}
+              disabled={!editingTask.title.trim() || !editingTask.dueDate}
+            >
+              Save Changes
+            </Button>
           </div>
         </div>
       </DialogContent>

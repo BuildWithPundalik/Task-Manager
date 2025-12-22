@@ -1,4 +1,4 @@
-import { Search, Filter } from "lucide-react"
+import { Search, Filter, ArrowUpDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DisplayTaskStatus } from "@/lib/types"
@@ -8,9 +8,11 @@ interface FiltersProps {
   setSearchTerm: (term: string) => void
   filterStatus: DisplayTaskStatus | "all"
   setFilterStatus: (status: DisplayTaskStatus | "all") => void
+  sortBy: "daysLeft" | "created" | "priority"
+  setSortBy: (sort: "daysLeft" | "created" | "priority") => void
 }
 
-export function Filters({ searchTerm, setSearchTerm, filterStatus, setFilterStatus }: FiltersProps) {
+export function Filters({ searchTerm, setSearchTerm, filterStatus, setFilterStatus, sortBy, setSortBy }: FiltersProps) {
   return (
     <div className="flex flex-col sm:flex-row gap-4 mb-6">
       <div className="relative flex-1">
@@ -32,6 +34,17 @@ export function Filters({ searchTerm, setSearchTerm, filterStatus, setFilterStat
           <SelectItem value="pending">Pending</SelectItem>
           <SelectItem value="overdue">Overdue</SelectItem>
           <SelectItem value="completed">Completed</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={sortBy} onValueChange={(value: "daysLeft" | "created" | "priority") => setSortBy(value)}>
+        <SelectTrigger className="w-full sm:w-48">
+          <ArrowUpDown className="w-4 h-4 mr-2" />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="daysLeft">Days Left</SelectItem>
+          <SelectItem value="created">Created Date</SelectItem>
+          <SelectItem value="priority">Priority</SelectItem>
         </SelectContent>
       </Select>
     </div>

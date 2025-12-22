@@ -102,6 +102,23 @@ class ApiService {
             error: 'Session expired. Please login again.',
           };
         }
+        // Log detailed error information for debugging
+        console.error('API Error Details:', {
+          url,
+          method: options.method,
+          status: response.status,
+          message: data.message,
+          errors: data.errors,
+          data: data,
+          requestBody: options.body,
+        });
+        
+        // If there are specific validation errors, show them
+        if (data.errors && Array.isArray(data.errors)) {
+          const errorMessages = data.errors.map((err: any) => err.msg || err.message).join(', ');
+          throw new Error(`Validation failed: ${errorMessages}`);
+        }
+        
         throw new Error(data.message || `HTTP error! status: ${response.status}`);
       }
 
