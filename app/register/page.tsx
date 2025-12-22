@@ -194,9 +194,31 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md">
-        <Card className={cn("w-full max-w-md")}>
+    <div className="relative flex min-h-screen items-center justify-center px-4 overflow-hidden">
+      {/* Background Image with 50% opacity */}
+      <div 
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: 'url("https://images.unsplash.com/photo-1557683316-973673baf926?w=1200&q=80")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          opacity: 0.5
+        }}
+      />
+      {/* Overlay for better text readability */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/80 via-purple-50/80 to-pink-50/80 z-0" />
+      
+      <div className="relative z-10 w-full max-w-md">
+        {/* Task Flow Title */}
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+            Task Flow
+          </h1>
+          <p className="text-gray-600 text-sm">Organize. Execute. Achieve.</p>
+        </div>
+
+        <Card className={cn("w-full max-w-md shadow-2xl border-2")}>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
             <CardDescription>
